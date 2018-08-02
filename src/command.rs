@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use super::instruction::*;
+use std::collections::BTreeMap;
 
 pub type ID = i32;
 
@@ -72,32 +72,31 @@ pub fn parse(s: &str) -> Option<Vec<Command>> {
     Some(cs)
 }
 
-pub fn compile(cmds : Vec<Command>) -> Vec<Instruction> {
+pub fn compile(cmds: Vec<Command>) -> Vec<Instruction> {
     let mut pos = BTreeMap::<ID, usize>::new();
 
     for i in 0..cmds.len() {
         let c = cmds[i].clone();
         match c {
-            Command::JumpZero(id, id_to) => {
+            Command::JumpZero(id, _) => {
                 pos.insert(id, i);
             }
-            Command::JumpNonZero(id, id_to) => {
+            Command::JumpNonZero(id, _) => {
                 pos.insert(id, i);
-            },
+            }
             _ => {}
         }
     }
 
-    cmds.iter().map(|c| {
-        match *c {
+    cmds.iter()
+        .map(|c| match *c {
             Command::Add(x) => Instruction::Add(x),
             Command::Move(x) => Instruction::Move(x),
             Command::Write => Instruction::Write,
             Command::Read => Instruction::Read,
             Command::Clear => Instruction::Clear,
             Command::Copy(x) => Instruction::Copy(x),
-            Command::JumpZero(id, id_to) => Instruction::JumpZero(pos[&id_to]),
-            Command::JumpNonZero(id, id_to) => Instruction::JumpNonZero(pos[&id_to]),
-        }
-    }).collect()
+            Command::JumpZero(_, id_to) => Instruction::JumpZero(pos[&id_to]),
+            Command::JumpNonZero(_, id_to) => Instruction::JumpNonZero(pos[&id_to]),
+        }).collect()
 }

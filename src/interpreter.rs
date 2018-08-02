@@ -3,6 +3,7 @@ use super::instruction::*;
 use std::fmt;
 use std::io;
 use std::io::Read;
+use std::io::Write;
 
 pub struct Memory {
     memory: Vec<u8>,
@@ -24,7 +25,7 @@ impl Memory {
     pub fn add(&mut self, amount: i32, offset: i32) {
         let value = *self.value(offset) as i32 + amount;
 
-        *self.value(offset) = Memory::check_value_overflow(value);
+        self.set(Memory::check_value_overflow(value), offset);
     }
 
     pub fn set(&mut self, value: u8, offset: i32) {
@@ -32,7 +33,8 @@ impl Memory {
     }
 
     pub fn move_ptr(&mut self, offset: i32) {
-        self.ptr = Memory::check_ptr_overflow(self.ptr, offset);
+        let ptr = Memory::check_ptr_overflow(self.ptr, offset);
+        self.set_ptr(ptr);
     }
 
     pub fn set_ptr(&mut self, ptr: usize) {
@@ -98,7 +100,7 @@ impl State {
             Instruction::Clear => self.memory.set(0, 0),
             Instruction::Copy(x) => {
                 let value = *self.memory.value(x);
-                self.memory.set(value, 0)
+                self.memory.set(value, 0);
             }
             Instruction::JumpZero(x) => if *self.memory.value(0) == 0 {
                 self.ptr_code = x;
@@ -109,6 +111,7 @@ impl State {
         }
 
         self.ptr_code += 1;
+        println!("{:?}", self);
     }
 
     pub fn execute(&mut self, instrs: Vec<Instruction>) {
@@ -118,17 +121,27 @@ impl State {
     }
 }
 
-impl fmt::Debug for State {
+impl fmt::Debug for Memory {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let size = self.memory.len() as u64;
+        print!("{{{}, {}}} ~> ", size, self.ptr);
+        io::stdout().flush().expect("...");
+        println!("{}", ((self.ptr as u64 + size + 1) % size) as usize);
         write!(
             f,
-            "" /*"[{}, {}, {}, {}, {}] around {}"
-            , self.memory[(self.ptr + SIZE - 2) % SIZE]
-            , self.memory[(self.ptr + SIZE - 1) % SIZE]
-            , self.memory[(self.ptr           ) % SIZE]
-            , self.memory[(self.ptr        + 1) % SIZE]
-            , self.memory[(self.ptr        + 2) % SIZE]
-            , self.ptr*/
+            "[{}, {}, {}, {}, {}] around {}",
+            self.memory[((self.ptr as u64 + size - 2) % size) as usize],
+            self.memory[((self.ptr as u64 + size - 1) % size) as usize],
+            self.memory[self.ptr],
+            self.memory[((self.ptr as u64 + 1) % size) as usize],
+            self.memory[((self.ptr as u64 + 2) % size) as usize],
+            self.ptr
         )
+    }
+}
+
+impl fmt::Debug for State {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?} at {}", self.memory, self.ptr_code)
     }
 }
